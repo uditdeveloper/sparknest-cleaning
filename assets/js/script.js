@@ -74,7 +74,7 @@ const formMessage = document.getElementById("formMessage");
 const dateInput = document.getElementById("date");
 
 // Paste your actual Make.com Custom Webhook URL here
-const MAKE_WEBHOOK_URL = "PASTE_YOUR_MAKE_WEBHOOK_URL_HERE";
+const MAKE_WEBHOOK_URL = "https://hook.eu1.make.com/7p0snoe55uoks2fvkkdy0tpoc91m7lfq";
 
 // Prevent past dates
 if (dateInput) {
@@ -130,7 +130,7 @@ if (form) {
 
     if (
       !MAKE_WEBHOOK_URL ||
-      MAKE_WEBHOOK_URL === "PASTE_YOUR_MAKE_WEBHOOK_URL_HERE"
+      MAKE_WEBHOOK_URL === "https://hook.eu1.make.com/7p0snoe55uoks2fvkkdy0tpoc91m7lfq"
     ) {
       formMessage.textContent =
         "The quote form is not connected yet. Please try again later.";
