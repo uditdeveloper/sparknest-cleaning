@@ -69,16 +69,19 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   /* ---------- 5. Quote form validation ---------- */
+
 const form = document.getElementById("quoteForm");
 const formMessage = document.getElementById("formMessage");
 const dateInput = document.getElementById("date");
 
-// Paste your actual Make.com Custom Webhook URL here
-const MAKE_WEBHOOK_URL = "https://hook.eu1.make.com/7p0snoe55uoks2fvkkdy0tpoc91m7lfq";
+// Make.com webhook URL
+const MAKE_WEBHOOK_URL =
+  "https://hook.eu1.make.com/7p0snoe55uoks2fvkkdy0tpoc91m7lfq";
 
 // Prevent past dates
 if (dateInput) {
   const today = new Date();
+
   const localDate = [
     today.getFullYear(),
     String(today.getMonth() + 1).padStart(2, "0"),
@@ -88,19 +91,24 @@ if (dateInput) {
   dateInput.min = localDate;
 }
 
+// Email validation
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-if (form) {
+if (form && formMessage) {
+
   form.addEventListener("submit", async function (event) {
     event.preventDefault();
 
     let isValid = true;
+
     const requiredFields = form.querySelectorAll("[required]");
 
+    // Validate required fields
     requiredFields.forEach(function (field) {
       const group = field.closest(".form-group");
+
       let fieldValid = field.value.trim() !== "";
 
       if (field.type === "email" && fieldValid) {
@@ -108,57 +116,76 @@ if (form) {
       }
 
       if (field.type === "date" && fieldValid) {
-        fieldValid = !dateInput.min || field.value >= dateInput.min;
+        fieldValid =
+          !dateInput.min || field.value >= dateInput.min;
       }
 
       if (group) {
         group.classList.toggle("has-error", !fieldValid);
       }
 
-      if (!fieldValid) isValid = false;
+      if (!fieldValid) {
+        isValid = false;
+      }
     });
 
     formMessage.className = "form-message";
     formMessage.textContent = "";
 
+    // Stop if validation fails
     if (!isValid) {
       formMessage.textContent =
         "Please fill in all required fields correctly.";
+
       formMessage.classList.add("is-error");
       return;
     }
 
+    // Check webhook configuration
     if (
       !MAKE_WEBHOOK_URL ||
-      MAKE_WEBHOOK_URL === "https://hook.eu1.make.com/7p0snoe55uoks2fvkkdy0tpoc91m7lfq"
+      MAKE_WEBHOOK_URL === "PASTE_YOUR_MAKE_WEBHOOK_URL_HERE"
     ) {
       formMessage.textContent =
         "The quote form is not connected yet. Please try again later.";
+
       formMessage.classList.add("is-error");
       return;
     }
 
     const submitButton = form.querySelector('[type="submit"]');
-    const originalButtonText = submitButton.innerHTML;
 
+    if (!submitButton) {
+      formMessage.textContent =
+        "Unable to submit the form. Please try again.";
+
+      formMessage.classList.add("is-error");
+      return;
+    }
+
+    const originalButtonHTML = submitButton.innerHTML;
     const formData = new FormData(form);
 
+    // Collect form details
     const payload = {
-      name: formData.get("name")?.trim(),
-      email: formData.get("email")?.trim(),
-      phone: formData.get("phone")?.trim(),
-      service: formData.get("service"),
-      date: formData.get("date"),
-      size: formData.get("size"),
+      name: formData.get("name")?.trim() || "",
+      email: formData.get("email")?.trim() || "",
+      phone: formData.get("phone")?.trim() || "",
+      service: formData.get("service") || "",
+      date: formData.get("date") || "",
+      size: formData.get("size") || "",
       details: formData.get("details")?.trim() || "",
       submittedAt: new Date().toISOString()
     };
 
     try {
       submitButton.disabled = true;
-      submitButton.textContent = "Sending...";
-      formMessage.textContent = "Submitting your quote request...";
+      submitButton.innerHTML = "Sending...";
 
+      formMessage.textContent =
+        "Submitting your quote request...";
+
+      // Send form data to Make.com
       const response = await fetch(MAKE_WEBHOOK_URL, {
         method: "POST",
         headers: {
@@ -168,31 +195,53 @@ if (form) {
       });
 
       if (!response.ok) {
-        throw new Error("Webhook request failed: " + response.status);
+        throw new Error(
+          "Webhook request failed: " + response.status
+        );
       }
 
+      // Successful submission
       formMessage.textContent =
         "Thank you! Your quote request has been submitted successfully.";
+
       formMessage.classList.add("is-success");
 
       form.reset();
+
+      // Reapply minimum date after reset
+      if (dateInput) {
+        const today = new Date();
+
+        dateInput.min = [
+          today.getFullYear(),
+          String(today.getMonth() + 1).padStart(2, "0"),
+          String(today.getDate()).padStart(2, "0")
+        ].join("-");
+      }
+
+      // Clear validation errors
+      form.querySelectorAll(".form-group").forEach(function (group) {
+        group.classList.remove("has-error");
+      });
 
     } catch (error) {
       console.error("Quote form submission error:", error);
 
       formMessage.textContent =
         "We couldn't submit your request. Please try again in a moment.";
+
       formMessage.classList.add("is-error");
 
     } finally {
       submitButton.disabled = false;
-      submitButton.innerHTML = originalButtonText;
+      submitButton.innerHTML = originalButtonHTML;
     }
   });
 
-  // Clear field errors when the user edits them
+  // Remove field error when the user edits it
   form.querySelectorAll("input, select, textarea").forEach(function (field) {
-    field.addEventListener("input", function () {
+
+    function clearFieldError() {
       const group = field.closest(".form-group");
 
       if (group) {
@@ -203,17 +252,13 @@ if (form) {
         formMessage.textContent = "";
         formMessage.className = "form-message";
       }
-    });
+    }
 
-    field.addEventListener("change", function () {
-      const group = field.closest(".form-group");
-
-      if (group) {
-        group.classList.remove("has-error");
-      }
-    });
+    field.addEventListener("input", clearFieldError);
+    field.addEventListener("change", clearFieldError);
   });
 }
+
 
   /* ---------- 6. Reveal sections on scroll ---------- */
   const revealItems = document.querySelectorAll(
