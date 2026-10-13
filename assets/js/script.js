@@ -144,7 +144,7 @@ if (form && formMessage) {
     // Check webhook configuration
     if (
       !MAKE_WEBHOOK_URL ||
-      MAKE_WEBHOOK_URL === "PASTE_YOUR_MAKE_WEBHOOK_URL_HERE"
+      MAKE_WEBHOOK_URL === "PASTE_YOUR_MAKE_WEBHOOK_URL_HERE" 
     ) {
       formMessage.textContent =
         "The quote form is not connected yet. Please try again later.";
