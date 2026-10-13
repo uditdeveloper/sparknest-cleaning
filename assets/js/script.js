@@ -69,18 +69,31 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   /* ---------- 5. Quote form validation ---------- */
-  const form = document.getElementById("quoteForm");
-  const formMessage = document.getElementById("formMessage");
-  const dateInput = document.getElementById("date");
+const form = document.getElementById("quoteForm");
+const formMessage = document.getElementById("formMessage");
+const dateInput = document.getElementById("date");
 
-  // Do not allow past dates
-  dateInput.min = new Date().toISOString().split("T")[0];
+// Paste your actual Make.com Custom Webhook URL here
+const MAKE_WEBHOOK_URL = "PASTE_YOUR_MAKE_WEBHOOK_URL_HERE";
 
-  function isValidEmail(value) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-  }
+// Prevent past dates
+if (dateInput) {
+  const today = new Date();
+  const localDate = [
+    today.getFullYear(),
+    String(today.getMonth() + 1).padStart(2, "0"),
+    String(today.getDate()).padStart(2, "0")
+  ].join("-");
 
-  form.addEventListener("submit", function (event) {
+  dateInput.min = localDate;
+}
+
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+if (form) {
+  form.addEventListener("submit", async function (event) {
     event.preventDefault();
 
     let isValid = true;
@@ -94,30 +107,113 @@ document.addEventListener("DOMContentLoaded", function () {
         fieldValid = isValidEmail(field.value.trim());
       }
 
-      group.classList.toggle("has-error", !fieldValid);
+      if (field.type === "date" && fieldValid) {
+        fieldValid = !dateInput.min || field.value >= dateInput.min;
+      }
+
+      if (group) {
+        group.classList.toggle("has-error", !fieldValid);
+      }
+
       if (!fieldValid) isValid = false;
     });
 
     formMessage.className = "form-message";
+    formMessage.textContent = "";
 
     if (!isValid) {
-      formMessage.textContent = "Please fill in all required fields correctly.";
+      formMessage.textContent =
+        "Please fill in all required fields correctly.";
       formMessage.classList.add("is-error");
       return;
     }
 
-    // TODO: connect to your backend or form service here
-    formMessage.textContent = "Thank you! We’ll get back to you shortly.";
-    formMessage.classList.add("is-success");
-    form.reset();
+    if (
+      !MAKE_WEBHOOK_URL ||
+      MAKE_WEBHOOK_URL === "PASTE_YOUR_MAKE_WEBHOOK_URL_HERE"
+    ) {
+      formMessage.textContent =
+        "The quote form is not connected yet. Please try again later.";
+      formMessage.classList.add("is-error");
+      return;
+    }
+
+    const submitButton = form.querySelector('[type="submit"]');
+    const originalButtonText = submitButton.innerHTML;
+
+    const formData = new FormData(form);
+
+    const payload = {
+      name: formData.get("name")?.trim(),
+      email: formData.get("email")?.trim(),
+      phone: formData.get("phone")?.trim(),
+      service: formData.get("service"),
+      date: formData.get("date"),
+      size: formData.get("size"),
+      details: formData.get("details")?.trim() || "",
+      submittedAt: new Date().toISOString()
+    };
+
+    try {
+      submitButton.disabled = true;
+      submitButton.textContent = "Sending...";
+      formMessage.textContent = "Submitting your quote request...";
+
+      const response = await fetch(MAKE_WEBHOOK_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error("Webhook request failed: " + response.status);
+      }
+
+      formMessage.textContent =
+        "Thank you! Your quote request has been submitted successfully.";
+      formMessage.classList.add("is-success");
+
+      form.reset();
+
+    } catch (error) {
+      console.error("Quote form submission error:", error);
+
+      formMessage.textContent =
+        "We couldn't submit your request. Please try again in a moment.";
+      formMessage.classList.add("is-error");
+
+    } finally {
+      submitButton.disabled = false;
+      submitButton.innerHTML = originalButtonText;
+    }
   });
 
-  // Remove the error state as soon as the user edits a field
+  // Clear field errors when the user edits them
   form.querySelectorAll("input, select, textarea").forEach(function (field) {
     field.addEventListener("input", function () {
-      field.closest(".form-group").classList.remove("has-error");
+      const group = field.closest(".form-group");
+
+      if (group) {
+        group.classList.remove("has-error");
+      }
+
+      if (formMessage.classList.contains("is-error")) {
+        formMessage.textContent = "";
+        formMessage.className = "form-message";
+      }
+    });
+
+    field.addEventListener("change", function () {
+      const group = field.closest(".form-group");
+
+      if (group) {
+        group.classList.remove("has-error");
+      }
     });
   });
+}
 
   /* ---------- 6. Reveal sections on scroll ---------- */
   const revealItems = document.querySelectorAll(
